@@ -1,0 +1,21 @@
+[package]
+name = "mgf-splash-worker"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gloo-timers = { version = "0.3.0", features = ["futures"] }
+js-sys = "0.3.97"
+mgf-splash-app = { path = "..", default-features = false }
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen = "0.2.120"
+wasm-bindgen-futures = "0.4.70"
+web-sys = { version = "0.3.97", features = ["DedicatedWorkerGlobalScope", "MessageEvent"] }
+
+[lints]
+workspace = true

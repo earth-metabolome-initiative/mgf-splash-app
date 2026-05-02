@@ -1,0 +1,13 @@
+[application]
+name = "mgf-splash-app"
+default_platform = "web"
+out_dir = "dist"
+
+[web.app]
+title = ""
+base_path = "/"
+
+[web.watcher]
+reload_html = true
+watch_path = ["index.html", "src", "public"]
+
