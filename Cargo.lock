@@ -1370,6 +1370,10 @@ name = "hashbrown"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
+dependencies = [
+ "foldhash",
+ "rustc-std-workspace-alloc",
+]
 
 [[package]]
 name = "headers"
@@ -1914,27 +1918,11 @@ dependencies = [
 [[package]]
 name = "mascot-rs"
 version = "0.1.0"
-source = "git+https://github.com/LucaCappelletti94/mascot-rs?rev=4ca85ec431cfb3f24b7eb44f41fd15e225b2d3e3#4ca85ec431cfb3f24b7eb44f41fd15e225b2d3e3"
+source = "git+https://github.com/LucaCappelletti94/mascot-rs?rev=bb0f6cddb7925f1ca272f397759d3ebb17de623b#bb0f6cddb7925f1ca272f397759d3ebb17de623b"
 dependencies = [
- "mass_spectrometry 0.1.0 (git+https://github.com/earth-metabolome-initiative/mass-spectrometry-traits?rev=33849cf912c9d2e6d13258f01593b7261e9f3c23)",
+ "mass_spectrometry",
  "molecular-formulas",
  "smiles-parser",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "mass_spectrometry"
-version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/mass-spectrometry-traits?rev=33849cf912c9d2e6d13258f01593b7261e9f3c23#33849cf912c9d2e6d13258f01593b7261e9f3c23"
-dependencies = [
- "arbitrary",
- "bitvec",
- "geometric-traits 0.1.0 (git+https://github.com/earth-metabolome-initiative/geometric-traits)",
- "half",
- "itoa",
- "multi_ranged",
- "num-traits",
- "sha2",
  "thiserror 2.0.18",
 ]
 
@@ -2000,7 +1988,7 @@ dependencies = [
  "dioxus-free-icons",
  "js-sys",
  "mascot-rs",
- "mass_spectrometry 0.1.0 (git+https://github.com/earth-metabolome-initiative/mass-spectrometry-traits?rev=5010a2a1c4dbf8d1898b8319b2108ea810be1767)",
+ "mass_spectrometry",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
@@ -2833,11 +2821,11 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "smiles-parser"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/smiles-parser?rev=8e8f5195979efba0cf12caf6c497a8654fc0bb9e#8e8f5195979efba0cf12caf6c497a8654fc0bb9e"
+source = "git+https://github.com/earth-metabolome-initiative/smiles-parser?rev=ad15ce7205f4e3ad842f5eaa153d562f3548bd79#ad15ce7205f4e3ad842f5eaa153d562f3548bd79"
 dependencies = [
  "elements_rs",
  "geometric-traits 0.1.0 (git+https://github.com/earth-metabolome-initiative/geometric-traits?branch=main)",
- "hashbrown 0.16.1",
+ "hashbrown 0.17.0",
  "molecular-formulas",
  "smallvec",
  "thiserror 2.0.18",
