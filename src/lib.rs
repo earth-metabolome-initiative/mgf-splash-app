@@ -220,6 +220,33 @@ impl SplashReport {
     }
 }
 
+/// Parses MGF text and returns canonical MGF blocks annotated with SPLASH metadata.
+///
+/// Spectra with a generated SPLASH code receive a `SPLASH=` metadata line.
+/// Spectra whose SPLASH computation fails receive a `SPLASH_ERROR=` metadata
+/// line instead, so the downloaded MGF keeps per-spectrum failure context.
+///
+/// # Errors
+///
+/// Returns an error when the MGF document cannot be parsed.
+pub fn mgf_with_splash(input: &str) -> Result<String, MgfSplashError> {
+    if input.trim().is_empty() {
+        return Ok(String::new());
+    }
+
+    let mut output = String::new();
+    for (offset, spectrum) in MGFIter::<f64, _>::from_document(input).enumerate() {
+        let spectrum = spectrum
+            .map_err(|error| MgfSplashError::new(format!("MGF parsing failed: {error}")))?;
+        if offset > 0 {
+            output.push('\n');
+        }
+        write_mgf_record_with_splash(&mut output, &spectrum, &splash_status_for(&spectrum));
+    }
+
+    Ok(output)
+}
+
 /// SPLASH computation result for one spectrum.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SplashRecord {
@@ -366,10 +393,7 @@ pub fn splash_report_from_mgf(input: &str) -> Result<SplashReport, MgfSplashErro
     for (offset, spectrum) in MGFIter::<f64, _>::from_document(input).enumerate() {
         let spectrum = spectrum
             .map_err(|error| MgfSplashError::new(format!("MGF parsing failed: {error}")))?;
-        let status = match splash_with_latest_traits(&spectrum) {
-            Ok(code) => SplashStatus::Generated(code),
-            Err(error) => SplashStatus::Failed(error),
-        };
+        let status = splash_status_for(&spectrum);
         records.push(SplashRecord::new(
             offset + 1,
             spectrum_title(&spectrum, offset + 1),
@@ -380,6 +404,13 @@ pub fn splash_report_from_mgf(input: &str) -> Result<SplashReport, MgfSplashErro
     }
 
     Ok(SplashReport::new(records))
+}
+
+fn splash_status_for(spectrum: &MascotGenericFormat<f64>) -> SplashStatus {
+    match splash_with_latest_traits(spectrum) {
+        Ok(code) => SplashStatus::Generated(code),
+        Err(error) => SplashStatus::Failed(error),
+    }
 }
 
 fn splash_with_latest_traits(spectrum: &MascotGenericFormat<f64>) -> Result<String, String> {
@@ -401,6 +432,73 @@ fn spectrum_title(spectrum: &MascotGenericFormat<f64>, index: usize) -> String {
         .map_or_else(|| format!("Spectrum {index}"), ToOwned::to_owned)
 }
 
+fn write_mgf_record_with_splash(
+    output: &mut String,
+    spectrum: &MascotGenericFormat<f64>,
+    status: &SplashStatus,
+) {
+    push_mgf_text_line(output, "BEGIN IONS");
+    let metadata = spectrum.metadata();
+    if let Some(feature_id) = spectrum.feature_id() {
+        push_mgf_metadata_line(output, "FEATURE_ID", feature_id);
+    }
+    push_mgf_metadata_line(output, "PEPMASS", spectrum.precursor_mz());
+    push_mgf_metadata_line(output, "CHARGE", spectrum.charge());
+    if let Some(retention_time) = metadata.retention_time() {
+        push_mgf_metadata_line(output, "RTINSECONDS", retention_time);
+    }
+    push_mgf_metadata_line(output, "MSLEVEL", spectrum.level());
+    if let Some(filename) = metadata.filename() {
+        push_mgf_metadata_line(output, "FILENAME", filename);
+    }
+    if let Some(smiles) = metadata.smiles() {
+        push_mgf_metadata_line(output, "SMILES", smiles);
+    }
+    if let Some(formula) = spectrum.formula() {
+        push_mgf_metadata_line(output, "FORMULA", formula);
+    }
+    match status {
+        SplashStatus::Generated(code) => push_mgf_metadata_line(output, "SPLASH", code),
+        SplashStatus::Failed(message) => {
+            push_mgf_metadata_line(output, "SPLASH_ERROR", escape_mgf_metadata_value(message));
+        }
+    }
+    if let Some(ion_mode) = spectrum.ion_mode() {
+        push_mgf_metadata_line(output, "IONMODE", ion_mode);
+    }
+    if let Some(source_instrument) = spectrum.source_instrument() {
+        push_mgf_metadata_line(output, "SOURCE_INSTRUMENT", source_instrument);
+    }
+    for (key, value) in metadata.arbitrary_metadata() {
+        push_mgf_metadata_line(output, key, value);
+    }
+    if let Some(scans) = spectrum.scans() {
+        push_mgf_metadata_line(output, "SCANS", scans);
+    }
+    for (mz, intensity) in spectrum.peaks() {
+        let _ = writeln!(output, "{mz} {intensity}");
+    }
+    push_mgf_text_line(output, "END IONS");
+}
+
+fn push_mgf_text_line(output: &mut String, line: &str) {
+    let _ = writeln!(output, "{line}");
+}
+
+fn push_mgf_metadata_line(output: &mut String, key: impl Display, value: impl Display) {
+    let _ = writeln!(output, "{key}={value}");
+}
+
+fn escape_mgf_metadata_value(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| match character {
+            '\n' | '\r' => ' ',
+            _ => character,
+        })
+        .collect()
+}
+
 /// Request sent from the UI thread to the SPLASH web worker.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MgfWorkerRequest {
@@ -411,6 +509,13 @@ pub enum MgfWorkerRequest {
     },
     /// Computes SPLASH records from an MGF input string.
     Process {
+        /// Monotonic request token.
+        token: u64,
+        /// MGF input text.
+        input: String,
+    },
+    /// Builds MGF text with `SPLASH=` metadata added to each spectrum.
+    AnnotateMgf {
         /// Monotonic request token.
         token: u64,
         /// MGF input text.
@@ -437,8 +542,22 @@ pub enum MgfWorkerResponse {
         /// Completed SPLASH report.
         report: SplashReport,
     },
+    /// Worker completed an annotated MGF download document.
+    AnnotatedMgf {
+        /// Monotonic request token.
+        token: u64,
+        /// MGF text with SPLASH metadata added.
+        document: String,
+    },
     /// Worker failed while processing a request.
     Fatal {
+        /// Monotonic request token.
+        token: u64,
+        /// Human-readable failure message.
+        message: String,
+    },
+    /// Worker failed while preparing an annotated MGF document.
+    AnnotationFatal {
         /// Monotonic request token.
         token: u64,
         /// Human-readable failure message.
@@ -454,7 +573,9 @@ impl MgfWorkerResponse {
             Self::Ready => 0,
             Self::Progress { token, .. }
             | Self::Complete { token, .. }
-            | Self::Fatal { token, .. } => *token,
+            | Self::AnnotatedMgf { token, .. }
+            | Self::Fatal { token, .. }
+            | Self::AnnotationFatal { token, .. } => *token,
         }
     }
 }
@@ -597,6 +718,40 @@ END IONS
         assert!(error.contains("line 2"));
         assert!(error.contains("PEPMASS=not-a-number"));
         assert!(error.contains("could not parse precursor m/z"));
+        Ok(())
+    }
+
+    #[test]
+    fn mgf_download_output_adds_splash_metadata() -> Result<(), MgfSplashError> {
+        let annotated = mgf_with_splash(TWO_RECORD_MGF)?;
+
+        assert_eq!(annotated.matches("BEGIN IONS").count(), 2);
+        assert_eq!(annotated.matches("SPLASH=").count(), 2);
+        assert!(annotated.contains("SPLASH=splash10-0udi-0490000000-4425acda10ed7d4709bd"));
+        assert!(!annotated.contains("SPLASH_ERROR="));
+
+        let reparsed = splash_report_from_mgf(&annotated)?;
+        assert_eq!(reparsed.total_count(), 2);
+        assert_eq!(reparsed.success_count(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn mgf_download_output_keeps_splash_failures_visible() -> Result<(), MgfSplashError> {
+        let mut spectra = MGFIter::<f64, _>::from_document(TWO_RECORD_MGF);
+        let Some(Ok(spectrum)) = spectra.next() else {
+            return Err(MgfSplashError::new("expected one parsed spectrum"));
+        };
+        let mut annotated = String::new();
+        write_mgf_record_with_splash(
+            &mut annotated,
+            &spectrum,
+            &SplashStatus::Failed(String::from("all intensities are zero")),
+        );
+
+        assert!(annotated.contains("SPLASH_ERROR="));
+        assert!(annotated.contains("all intensities are zero"));
+        assert!(!annotated.contains("SPLASH=splash"));
         Ok(())
     }
 

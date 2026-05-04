@@ -6,7 +6,9 @@ mod app {
 
     use gloo_timers::future::TimeoutFuture;
     use js_sys::global;
-    use mgf_splash_app::{MgfWorkerRequest, MgfWorkerResponse, splash_report_from_mgf};
+    use mgf_splash_app::{
+        MgfWorkerRequest, MgfWorkerResponse, mgf_with_splash, splash_report_from_mgf,
+    };
     use wasm_bindgen::{JsCast, JsValue, closure::Closure, prelude::wasm_bindgen};
     use wasm_bindgen_futures::spawn_local;
     use web_sys::{DedicatedWorkerGlobalScope, MessageEvent};
@@ -59,6 +61,31 @@ mod app {
                             }
                             Err(error) if !is_stale(token) => {
                                 let _ = post_response(&MgfWorkerResponse::Fatal {
+                                    token,
+                                    message: error.message().to_owned(),
+                                });
+                            }
+                            _ => {}
+                        }
+                    });
+                }
+                MgfWorkerRequest::AnnotateMgf { token, input } => {
+                    ACTIVE_TOKEN.with(|active| active.set(token));
+                    spawn_local(async move {
+                        TimeoutFuture::new(0).await;
+                        if is_stale(token) {
+                            return;
+                        }
+
+                        match mgf_with_splash(&input) {
+                            Ok(document) if !is_stale(token) => {
+                                let _ = post_response(&MgfWorkerResponse::AnnotatedMgf {
+                                    token,
+                                    document,
+                                });
+                            }
+                            Err(error) if !is_stale(token) => {
+                                let _ = post_response(&MgfWorkerResponse::AnnotationFatal {
                                     token,
                                     message: error.message().to_owned(),
                                 });

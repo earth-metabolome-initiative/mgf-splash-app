@@ -92,6 +92,7 @@ button {
 
 .hero-links,
 .input-actions,
+.download-actions,
 .summary-pills {
     display: flex;
     flex-wrap: wrap;
@@ -521,6 +522,10 @@ button {
     }
 
     .input-actions {
+        width: 100%;
+    }
+
+    .download-actions {
         width: 100%;
     }
 

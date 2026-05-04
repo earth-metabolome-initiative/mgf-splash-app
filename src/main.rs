@@ -23,7 +23,7 @@ use js_sys::Array;
 #[cfg(target_arch = "wasm32")]
 use mgf_splash_app::MgfWorkerResponse;
 #[cfg(not(target_arch = "wasm32"))]
-use mgf_splash_app::splash_report_from_mgf;
+use mgf_splash_app::{mgf_with_splash, splash_report_from_mgf};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
@@ -106,6 +106,18 @@ impl SplashRuntime {
             report_state.set(ReportState::Fatal(message));
         }
     }
+
+    fn download_mgf(&self, input: &str, mut download_status: Signal<String>) {
+        let token = next_request_token(&self.request_token);
+        download_status.set(String::from("Preparing MGF download."));
+        let request = MgfWorkerRequest::AnnotateMgf {
+            token,
+            input: input.to_owned(),
+        };
+        if let Err(message) = send_worker_request(&self.worker_client, &request) {
+            download_status.set(message);
+        }
+    }
 }
 
 #[component]
@@ -128,7 +140,7 @@ fn App() -> Element {
     let worker_client = use_hook({
         let loading = loading.clone();
         let request_token = request_token.clone();
-        move || create_worker_client(report_state, request_token, loading)
+        move || create_worker_client(report_state, request_token, loading, download_status)
     });
     let runtime = Rc::new(SplashRuntime {
         report_state,
@@ -138,10 +150,11 @@ fn App() -> Element {
     });
 
     let input_value = input();
+    let processing_runtime = runtime.clone();
     use_effect(move || {
         let next_input = input();
         download_status.set(String::new());
-        runtime.process(&next_input);
+        processing_runtime.process(&next_input);
     });
 
     let state = report_state();
@@ -151,6 +164,7 @@ fn App() -> Element {
     };
     let can_download = matches!(&state, ReportState::Ready(report) if !report.records().is_empty());
     let tsv_for_download = tsv;
+    let input_for_mgf_download = input_value.clone();
 
     rsx! {
         main { class: "page",
@@ -171,6 +185,8 @@ fn App() -> Element {
                         href: "https://github.com/LucaCappelletti94/mascot-rs",
                         target: "_blank",
                         rel: "noopener noreferrer",
+                        aria_label: "Open mascot-rs GitHub repository",
+                        title: "Open mascot-rs GitHub repository",
                         {app_icon(FaGithub, "GitHub repository")}
                         "mascot-rs"
                     }
@@ -179,6 +195,8 @@ fn App() -> Element {
                         href: "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits",
                         target: "_blank",
                         rel: "noopener noreferrer",
+                        aria_label: "Open mass-spectrometry-traits GitHub repository",
+                        title: "Open mass-spectrometry-traits GitHub repository",
                         {app_icon(FaGithub, "GitHub repository")}
                         "SPLASH"
                     }
@@ -218,7 +236,10 @@ fn App() -> Element {
                                 }
                             }
                             div { class: "input-actions",
-                                label { class: "button button-secondary file-button",
+                                label {
+                                    class: "button button-secondary file-button",
+                                    aria_label: "Choose MGF files",
+                                    title: "Choose MGF files",
                                     {app_icon(LdUpload, "Choose files")}
                                     "Choose files"
                                     input {
@@ -234,6 +255,8 @@ fn App() -> Element {
                                 }
                                 button {
                                     class: "button button-secondary",
+                                    aria_label: "Load example MGF spectra",
+                                    title: "Load example MGF spectra",
                                     onclick: move |_| {
                                         input.set(String::from(SAMPLE_MGF));
                                         file_status.set(String::from(
@@ -249,6 +272,8 @@ fn App() -> Element {
                     }
                     textarea {
                         class: "mgf-input",
+                        aria_label: "MGF input",
+                        title: "Paste or drop MGF spectra",
                         spellcheck: "false",
                         value: "{input_value}",
                         placeholder: "BEGIN IONS\nPEPMASS=500.0\nCHARGE=1\nMSLEVEL=2\n100.0 20.0\nEND IONS",
@@ -272,17 +297,35 @@ fn App() -> Element {
                             }
                             {result_summary(&state)}
                         }
-                        button {
-                            class: "button button-primary",
-                            disabled: !can_download,
-                            onclick: move |_| {
-                                match download_tsv(&tsv_for_download) {
-                                    Ok(()) => download_status.set(String::from("Downloaded TSV.")),
-                                    Err(message) => download_status.set(message),
-                                }
-                            },
-                            {app_icon(LdDownload, "Download")}
-                            "Download TSV"
+                        div { class: "download-actions",
+                            button {
+                                class: "button button-primary",
+                                aria_label: "Download TSV results",
+                                title: "Download TSV results",
+                                disabled: !can_download,
+                                onclick: move |_| {
+                                    match download_tsv(&tsv_for_download) {
+                                        Ok(()) => download_status.set(String::from("Downloaded TSV.")),
+                                        Err(message) => download_status.set(message),
+                                    }
+                                },
+                                {app_icon(LdDownload, "Download")}
+                                "TSV"
+                            }
+                            button {
+                                class: "button button-primary",
+                                aria_label: "Download MGF with SPLASH metadata",
+                                title: "Download MGF with SPLASH metadata",
+                                disabled: !can_download,
+                                onclick: move |_| {
+                                    runtime.download_mgf(
+                                        &input_for_mgf_download,
+                                        download_status,
+                                    );
+                                },
+                                {app_icon(LdDownload, "Download")}
+                                "MGF"
+                            }
                         }
                     }
 
@@ -316,6 +359,8 @@ fn splash_definition() -> Element {
                     href: "https://www.nature.com/articles/nbt.3689",
                     target: "_blank",
                     rel: "noopener noreferrer",
+                    aria_label: "Open original SPLASH paper",
+                    title: "Open original SPLASH paper",
                     {app_icon(LdBookOpenText, "Original paper")}
                     "Original paper"
                 }
@@ -324,6 +369,8 @@ fn splash_definition() -> Element {
                     href: "https://doi.org/10.1038/nbt.3689",
                     target: "_blank",
                     rel: "noopener noreferrer",
+                    aria_label: "Open SPLASH paper DOI",
+                    title: "Open SPLASH paper DOI",
                     {app_icon(LdFingerprint, "DOI")}
                     "DOI"
                 }
@@ -450,6 +497,7 @@ impl SplashWorker {
         report_state: Signal<ReportState>,
         request_token: Rc<Cell<u64>>,
         loading: LoadingControls,
+        download_status: Signal<String>,
     ) -> Result<Self, String> {
         let worker = Self::create_worker()?;
         let ready = Rc::new(Cell::new(false));
@@ -459,6 +507,7 @@ impl SplashWorker {
             report_state,
             request_token,
             loading.clone(),
+            download_status,
             ready.clone(),
             pending_request.clone(),
         );
@@ -485,6 +534,7 @@ impl SplashWorker {
         mut report_state: Signal<ReportState>,
         request_token: Rc<Cell<u64>>,
         loading: LoadingControls,
+        mut download_status: Signal<String>,
         ready: Rc<Cell<bool>>,
         pending_request: Rc<RefCell<Option<MgfWorkerRequest>>>,
     ) -> Closure<dyn FnMut(MessageEvent)> {
@@ -511,7 +561,12 @@ impl SplashWorker {
                 return;
             }
 
-            Self::handle_worker_response(response, &loading, &mut report_state);
+            Self::handle_worker_response(
+                response,
+                &loading,
+                &mut report_state,
+                &mut download_status,
+            );
         });
         let onmessage = Closure::wrap(onmessage_callback);
         worker.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
@@ -547,6 +602,7 @@ impl SplashWorker {
         response: MgfWorkerResponse,
         loading: &LoadingControls,
         report_state: &mut Signal<ReportState>,
+        download_status: &mut Signal<String>,
     ) {
         match response {
             MgfWorkerResponse::Progress { label, .. } => {
@@ -564,6 +620,13 @@ impl SplashWorker {
             MgfWorkerResponse::Fatal { message, .. } => {
                 loading.reset();
                 report_state.set(ReportState::Fatal(message));
+            }
+            MgfWorkerResponse::AnnotatedMgf { document, .. } => match download_mgf(&document) {
+                Ok(()) => download_status.set(String::from("Downloaded MGF.")),
+                Err(message) => download_status.set(message),
+            },
+            MgfWorkerResponse::AnnotationFatal { message, .. } => {
+                download_status.set(message);
             }
             MgfWorkerResponse::Ready => unreachable!("ready messages return early"),
         }
@@ -605,6 +668,7 @@ impl SplashWorker {
         _report_state: Signal<ReportState>,
         _request_token: Rc<Cell<u64>>,
         _loading: LoadingControls,
+        _download_status: Signal<String>,
     ) -> Result<Self, String> {
         Err(String::from(
             "worker processing is only available in the browser build",
@@ -620,6 +684,9 @@ impl SplashWorker {
             MgfWorkerRequest::Process { input, .. } => splash_report_from_mgf(input)
                 .map(|_| ())
                 .map_err(|error| error.to_string()),
+            MgfWorkerRequest::AnnotateMgf { input, .. } => mgf_with_splash(input)
+                .map(|_| ())
+                .map_err(|error| error.to_string()),
             MgfWorkerRequest::Cancel { .. } => Ok(()),
         }
     }
@@ -629,8 +696,9 @@ fn create_worker_client(
     report_state: Signal<ReportState>,
     request_token: Rc<Cell<u64>>,
     loading: LoadingControls,
+    download_status: Signal<String>,
 ) -> Result<Rc<SplashWorker>, String> {
-    SplashWorker::new(report_state, request_token, loading).map(Rc::new)
+    SplashWorker::new(report_state, request_token, loading, download_status).map(Rc::new)
 }
 
 fn next_request_token(request_token: &Cell<u64>) -> u64 {
@@ -754,17 +822,19 @@ fn load_files(files: Vec<FileData>, mut input: Signal<String>, mut file_status: 
     });
 }
 
-fn app_icon<T>(shape: T, title: &'static str) -> Element
+fn app_icon<T>(shape: T, _title: &'static str) -> Element
 where
     T: IconShape + Clone + PartialEq + 'static,
 {
     rsx! {
-        Icon {
-            class: "app-icon",
-            height: 18_u32,
-            width: 18_u32,
-            icon: shape,
-            title: Some(String::from(title)),
+        span { aria_hidden: "true",
+            Icon {
+                class: "app-icon",
+                height: 18_u32,
+                width: 18_u32,
+                icon: shape,
+                title: None,
+            }
         }
     }
 }
@@ -775,6 +845,16 @@ fn format_optional_str(value: Option<&str>) -> String {
 
 #[cfg(target_arch = "wasm32")]
 fn download_tsv(text: &str) -> Result<(), String> {
+    download_text_file(text, "mgf-splash.tsv", "TSV")
+}
+
+#[cfg(target_arch = "wasm32")]
+fn download_mgf(text: &str) -> Result<(), String> {
+    download_text_file(text, "mgf-splash-with-splash.mgf", "MGF")
+}
+
+#[cfg(target_arch = "wasm32")]
+fn download_text_file(text: &str, filename: &str, label: &str) -> Result<(), String> {
     let window =
         web_sys::window().ok_or_else(|| String::from("Download is unavailable in this build."))?;
     let document = window
@@ -787,9 +867,13 @@ fn download_tsv(text: &str) -> Result<(), String> {
     let parts = Array::new();
     parts.push(&JsValue::from_str(text));
     let blob = Blob::new_with_str_sequence(&parts)
-        .map_err(|error| format!("failed to prepare TSV: {}", js_error_text(&error)))?;
-    let url = Url::create_object_url_with_blob(&blob)
-        .map_err(|error| format!("failed to prepare TSV download: {}", js_error_text(&error)))?;
+        .map_err(|error| format!("failed to prepare {label}: {}", js_error_text(&error)))?;
+    let url = Url::create_object_url_with_blob(&blob).map_err(|error| {
+        format!(
+            "failed to prepare {label} download: {}",
+            js_error_text(&error)
+        )
+    })?;
 
     let anchor = document
         .create_element("a")
@@ -797,14 +881,22 @@ fn download_tsv(text: &str) -> Result<(), String> {
         .dyn_into::<HtmlAnchorElement>()
         .map_err(|error| format!("failed to create download link: {}", js_error_text(&error)))?;
     anchor.set_href(&url);
-    anchor.set_download("mgf-splash.tsv");
+    anchor.set_download(filename);
 
-    body.append_child(anchor.as_ref())
-        .map_err(|error| format!("failed to start TSV download: {}", js_error_text(&error)))?;
+    body.append_child(anchor.as_ref()).map_err(|error| {
+        format!(
+            "failed to start {label} download: {}",
+            js_error_text(&error)
+        )
+    })?;
     anchor.click();
     let _ = body.remove_child(anchor.as_ref());
-    Url::revoke_object_url(&url)
-        .map_err(|error| format!("failed to clean up TSV download: {}", js_error_text(&error)))?;
+    Url::revoke_object_url(&url).map_err(|error| {
+        format!(
+            "failed to clean up {label} download: {}",
+            js_error_text(&error)
+        )
+    })?;
 
     Ok(())
 }
