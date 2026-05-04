@@ -40,7 +40,12 @@ jobs:
       - name: Audit
         run: cargo audit --deny warnings
       - name: Bundle
-        run: dx bundle --web --release --locked --debug-symbols false --base-path "/${{ github.event.repository.name }}/"
+        run: dx bundle --web --release --locked --debug-symbols false --base-path /
+      - name: Check Pages asset paths
+        run: |
+          test -f dist/public/CNAME
+          test "$(cat dist/public/CNAME)" = "splash.earthmetabolome.org"
+          ! grep -q '/mgf-splash-app/' dist/public/index.html
       - name: Links
         uses: lycheeverse/lychee-action@v2
         with:
