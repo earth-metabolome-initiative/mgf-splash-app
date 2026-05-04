@@ -7,9 +7,12 @@ use std::{
 
 use dioxus::html::{FileData, HasFileData};
 use dioxus::prelude::*;
-use dioxus_free_icons::icons::ld_icons::{
-    LdCircleAlert, LdCircleCheck, LdDownload, LdFileText, LdGithub, LdHash, LdSparkles, LdTable2,
-    LdUpload,
+use dioxus_free_icons::icons::{
+    fa_brands_icons::FaGithub,
+    ld_icons::{
+        LdBookOpenText, LdCircleAlert, LdCircleCheck, LdDownload, LdFileText, LdFingerprint,
+        LdHash, LdSparkles, LdTable2, LdUpload,
+    },
 };
 use dioxus_free_icons::{Icon, IconShape};
 
@@ -168,7 +171,7 @@ fn App() -> Element {
                         href: "https://github.com/LucaCappelletti94/mascot-rs",
                         target: "_blank",
                         rel: "noopener noreferrer",
-                        {app_icon(LdGithub, "GitHub repository")}
+                        {app_icon(FaGithub, "GitHub repository")}
                         "mascot-rs"
                     }
                     a {
@@ -176,11 +179,13 @@ fn App() -> Element {
                         href: "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits",
                         target: "_blank",
                         rel: "noopener noreferrer",
-                        {app_icon(LdSparkles, "SPLASH implementation")}
+                        {app_icon(FaGithub, "GitHub repository")}
                         "SPLASH"
                     }
                 }
             }
+
+            {splash_definition()}
 
             section { class: "layout",
                 section {
@@ -292,6 +297,41 @@ fn App() -> Element {
     }
 }
 
+fn splash_definition() -> Element {
+    rsx! {
+        section { class: "splash-definition", aria_label: "SPLASH definition",
+            div { class: "title-with-icon splash-definition-title",
+                {app_icon(LdHash, "SPLASH")}
+                h2 { "What is a SPLASH?" }
+            }
+            p {
+                "A SPLASH is a database-independent identifier for a mass spectrum. It has four dash-separated blocks: version and spectrum type, a prominent-ion prefilter, a coarse similarity histogram, and a truncated SHA-256 hash of the canonicalized peak list."
+            }
+            p {
+                "This app hashes only fragment peak m/z and intensity values. Titles, feature ids, file names, scans, retention times, charges, and PEPMASS/precursor m/z are displayed as context and do not change the SPLASH."
+            }
+            nav { class: "splash-definition-links", aria_label: "SPLASH references",
+                a {
+                    class: "reference-badge",
+                    href: "https://www.nature.com/articles/nbt.3689",
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    {app_icon(LdBookOpenText, "Original paper")}
+                    "Original paper"
+                }
+                a {
+                    class: "reference-badge",
+                    href: "https://doi.org/10.1038/nbt.3689",
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    {app_icon(LdFingerprint, "DOI")}
+                    "DOI"
+                }
+            }
+        }
+    }
+}
+
 fn result_summary(state: &ReportState) -> Element {
     match state {
         ReportState::Empty => rsx! {
@@ -318,8 +358,8 @@ fn result_summary(state: &ReportState) -> Element {
                 }
             }
         },
-        ReportState::Fatal(error) => rsx! {
-            p { class: "panel-copy error-copy", "{error}" }
+        ReportState::Fatal(_) => rsx! {
+            p { class: "panel-copy error-copy", "Parsing failed." }
         },
     }
 }
@@ -358,6 +398,7 @@ fn result_body(state: &ReportState) -> Element {
                             th { "#" }
                             th { "Spectrum" }
                             th { "Feature" }
+                            th { "PEPMASS" }
                             th { "SPLASH" }
                         }
                     }
@@ -366,7 +407,8 @@ fn result_body(state: &ReportState) -> Element {
                             tr { key: "{record.index()}",
                                 td { class: "mono-cell", "{record.index()}" }
                                 td { class: "title-cell", "{record.title()}" }
-                                td { class: "mono-cell", "{format_optional_usize(record.feature_id())}" }
+                                td { class: "mono-cell", "{format_optional_str(record.feature_id())}" }
+                                td { class: "mono-cell", "{record.pepmass()}" }
                                 td {
                                     match record.status() {
                                         SplashStatus::Generated(code) => rsx! {
@@ -387,7 +429,7 @@ fn result_body(state: &ReportState) -> Element {
             div { class: "empty-state error-state",
                 div { class: "state-icon error-icon", {app_icon(LdCircleAlert, "Parse error")} }
                 p { class: "empty-title", "MGF parse error" }
-                p { "{error}" }
+                p { class: "error-detail", "{error}" }
             }
         },
     }
@@ -727,8 +769,8 @@ where
     }
 }
 
-fn format_optional_usize(value: Option<usize>) -> String {
-    value.map_or_else(|| String::from("-"), |value| value.to_string())
+fn format_optional_str(value: Option<&str>) -> String {
+    value.map_or_else(|| String::from("-"), ToOwned::to_owned)
 }
 
 #[cfg(target_arch = "wasm32")]

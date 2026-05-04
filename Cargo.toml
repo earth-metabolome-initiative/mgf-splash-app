@@ -86,10 +86,10 @@ web = [
 
 [dependencies]
 dioxus = { version = "=0.7.7", optional = true }
-dioxus-free-icons = { version = "0.10.0", features = ["lucide"], optional = true }
+dioxus-free-icons = { version = "0.10.0", features = ["font-awesome-brands", "lucide"], optional = true }
 js-sys = { version = "0.3.97", optional = true }
-mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "438a882e13d2c1df26db245425643a71b1951b6a", default-features = false }
-mass_spectrometry = { git = "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits", rev = "8aba0c68215bab50b2599fada002bd467cf7bd48", default-features = false }
+mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "4ca85ec431cfb3f24b7eb44f41fd15e225b2d3e3", default-features = false }
+mass_spectrometry = { git = "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits", rev = "5010a2a1c4dbf8d1898b8319b2108ea810be1767", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
 wasm-bindgen = { version = "0.2.120", optional = true }

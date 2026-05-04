@@ -3,4 +3,5 @@
 /.dioxus/
 /.playwright-mcp/
 /mgf-splash-app-*.png
+/mgf-splash-*.png
 /public/generated/

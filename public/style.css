@@ -105,6 +105,7 @@ button {
 }
 
 .hero-link,
+.reference-badge,
 .button,
 .meta-pill {
     min-height: 2.35rem;
@@ -121,11 +122,47 @@ button {
 }
 
 .hero-link:hover,
+.reference-badge:hover,
 .button:hover:not(:disabled) {
     color: var(--blue);
     background: rgba(20, 34, 41, 0.08);
     border-color: rgba(20, 34, 41, 0.2);
     transform: translateY(-1px);
+}
+
+.splash-definition {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 252, 247, 0.72);
+    margin-bottom: 1rem;
+    padding: 0.95rem 0;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.splash-definition h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.15;
+}
+
+.splash-definition p {
+    max-width: 72rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0;
+}
+
+.splash-definition-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.reference-badge {
+    min-height: 2.1rem;
+    padding: 0.36rem 0.72rem;
+    font-weight: 650;
 }
 
 .button {
@@ -207,7 +244,9 @@ button {
 }
 
 .title-with-icon .app-icon,
+.splash-definition-title .app-icon,
 .hero-link .app-icon,
+.reference-badge .app-icon,
 .button .app-icon,
 .meta-pill .app-icon {
     color: var(--blue);
@@ -344,6 +383,12 @@ button {
     border-color: rgba(157, 65, 51, 0.16);
 }
 
+.empty-state .error-detail {
+    max-width: 100%;
+    color: var(--red);
+    overflow-wrap: anywhere;
+}
+
 .progress-shell {
     width: min(100%, 24rem);
     height: 0.58rem;
@@ -420,6 +465,11 @@ button {
 .result-table th:nth-child(3),
 .result-table td:nth-child(3) {
     width: 4.5rem;
+}
+
+.result-table th:nth-child(4),
+.result-table td:nth-child(4) {
+    width: 5.8rem;
 }
 
 .mono-cell,
@@ -542,6 +592,10 @@ button {
     }
 
     .result-table td:nth-child(4)::before {
+        content: "PEPMASS";
+    }
+
+    .result-table td:nth-child(5)::before {
         content: "SPLASH";
     }
 }

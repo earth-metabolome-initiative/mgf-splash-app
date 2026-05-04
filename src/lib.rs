@@ -5,8 +5,10 @@ use std::{
     fmt::{Display, Formatter, Result as FmtResult, Write as _},
 };
 
-use mascot_rs::prelude::{MGFIter, MascotGenericFormat};
-use mass_spectrometry::prelude::SpectrumSplash;
+use mascot_rs::prelude::{MGFIter, MascotGenericFormat, Spectrum as MascotSpectrum};
+use mass_spectrometry::prelude::{
+    GenericSpectrum, SpectrumMut, SpectrumSplash as LatestSpectrumSplash,
+};
 use serde::{Deserialize, Serialize};
 
 /// Example MGF document used by the app's sample button.
@@ -195,7 +197,8 @@ impl SplashReport {
     /// Serializes all report records as tab-separated values.
     #[must_use]
     pub fn to_tsv(&self) -> String {
-        let mut output = String::from("spectrum\ttitle\tfeature_id\tstatus\tsplash\terror\n");
+        let mut output =
+            String::from("spectrum\ttitle\tfeature_id\tpepmass\tstatus\tsplash\terror\n");
         for record in &self.records {
             let (status, splash, error) = match record.status() {
                 SplashStatus::Generated(code) => ("ok", code.as_str(), ""),
@@ -203,13 +206,11 @@ impl SplashReport {
             };
             let _ = writeln!(
                 &mut output,
-                "{}\t{}\t{}\t{}\t{}\t{}",
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}",
                 record.index(),
                 escape_tsv_field(record.title()),
-                record
-                    .feature_id()
-                    .map(|feature_id| feature_id.to_string())
-                    .unwrap_or_default(),
+                escape_tsv_field(record.feature_id().unwrap_or_default()),
+                escape_tsv_field(record.pepmass()),
                 status,
                 escape_tsv_field(splash),
                 escape_tsv_field(error),
@@ -224,7 +225,8 @@ impl SplashReport {
 pub struct SplashRecord {
     index: usize,
     title: String,
-    feature_id: Option<usize>,
+    feature_id: Option<String>,
+    pepmass: String,
     status: SplashStatus,
 }
 
@@ -234,13 +236,15 @@ impl SplashRecord {
     pub const fn new(
         index: usize,
         title: String,
-        feature_id: Option<usize>,
+        feature_id: Option<String>,
+        pepmass: String,
         status: SplashStatus,
     ) -> Self {
         Self {
             index,
             title,
             feature_id,
+            pepmass,
             status,
         }
     }
@@ -259,8 +263,14 @@ impl SplashRecord {
 
     /// Returns the optional MGF feature identifier.
     #[must_use]
-    pub const fn feature_id(&self) -> Option<usize> {
-        self.feature_id
+    pub fn feature_id(&self) -> Option<&str> {
+        self.feature_id.as_deref()
+    }
+
+    /// Returns the MGF `PEPMASS` precursor mass-to-charge value.
+    #[must_use]
+    pub fn pepmass(&self) -> &str {
+        &self.pepmass
     }
 
     /// Returns the SPLASH computation status.
@@ -353,17 +363,18 @@ pub fn splash_report_from_mgf(input: &str) -> Result<SplashReport, MgfSplashErro
     }
 
     let mut records = Vec::new();
-    for (offset, spectrum) in MGFIter::<usize, f64, _>::from_document(input).enumerate() {
+    for (offset, spectrum) in MGFIter::<f64, _>::from_document(input).enumerate() {
         let spectrum = spectrum
             .map_err(|error| MgfSplashError::new(format!("MGF parsing failed: {error}")))?;
-        let status = match spectrum.splash() {
+        let status = match splash_with_latest_traits(&spectrum) {
             Ok(code) => SplashStatus::Generated(code),
-            Err(error) => SplashStatus::Failed(error.to_string()),
+            Err(error) => SplashStatus::Failed(error),
         };
         records.push(SplashRecord::new(
             offset + 1,
             spectrum_title(&spectrum, offset + 1),
-            spectrum.feature_id(),
+            spectrum.feature_id().map(ToOwned::to_owned),
+            spectrum.precursor_mz().to_string(),
             status,
         ));
     }
@@ -371,7 +382,18 @@ pub fn splash_report_from_mgf(input: &str) -> Result<SplashReport, MgfSplashErro
     Ok(SplashReport::new(records))
 }
 
-fn spectrum_title(spectrum: &MascotGenericFormat<usize>, index: usize) -> String {
+fn splash_with_latest_traits(spectrum: &MascotGenericFormat<f64>) -> Result<String, String> {
+    let mut converted = GenericSpectrum::try_with_capacity(spectrum.precursor_mz(), spectrum.len())
+        .map_err(|error| error.to_string())?;
+    for (mz, intensity) in spectrum.peaks() {
+        converted
+            .add_peak(mz, intensity)
+            .map_err(|error| error.to_string())?;
+    }
+    converted.splash().map_err(|error| error.to_string())
+}
+
+fn spectrum_title(spectrum: &MascotGenericFormat<f64>, index: usize) -> String {
     spectrum
         .metadata()
         .arbitrary_metadata_value("TITLE")
@@ -487,14 +509,16 @@ END IONS
         };
         assert_eq!(first.index(), 1);
         assert_eq!(first.title(), "Spectrum 1");
-        assert_eq!(first.feature_id(), Some(7));
+        assert_eq!(first.feature_id(), Some("7"));
+        assert_eq!(first.pepmass(), "250");
         assert_eq!(
             first.status().code(),
             Some("splash10-0udi-0490000000-4425acda10ed7d4709bd")
         );
 
         assert_eq!(second.title(), "Spectrum 2");
-        assert_eq!(second.feature_id(), Some(8));
+        assert_eq!(second.feature_id(), Some("8"));
+        assert_eq!(second.pepmass(), "350");
         assert!(
             second
                 .status()
@@ -556,7 +580,7 @@ END IONS
         assert!(report.is_empty());
         assert_eq!(
             report.to_tsv(),
-            "spectrum\ttitle\tfeature_id\tstatus\tsplash\terror\n"
+            "spectrum\ttitle\tfeature_id\tpepmass\tstatus\tsplash\terror\n"
         );
         Ok(())
     }
@@ -568,7 +592,11 @@ END IONS
             return Err(MgfSplashError::new("expected invalid MGF to fail"));
         };
 
-        assert!(error.to_string().starts_with("MGF parsing failed:"));
+        let error = error.to_string();
+        assert!(error.starts_with("MGF parsing failed:"));
+        assert!(error.contains("line 2"));
+        assert!(error.contains("PEPMASS=not-a-number"));
+        assert!(error.contains("could not parse precursor m/z"));
         Ok(())
     }
 
@@ -578,7 +606,8 @@ END IONS
             SplashRecord::new(
                 1,
                 String::from("Two peak SPLASH sanity check"),
-                Some(7),
+                Some(String::from("7")),
+                String::from("250"),
                 SplashStatus::Generated(String::from(
                     "splash10-0udi-0490000000-4425acda10ed7d4709bd",
                 )),
@@ -586,16 +615,17 @@ END IONS
             SplashRecord::new(
                 2,
                 String::from("Empty spectrum"),
-                Some(8),
+                Some(String::from("8")),
+                String::from("350"),
                 SplashStatus::Failed(String::from("all intensities are zero")),
             ),
         ]);
         let tsv = report.to_tsv();
 
         assert!(
-            tsv.contains("1\tTwo peak SPLASH sanity check\t7\tok\tsplash10-0udi-0490000000-4425acda10ed7d4709bd\t")
+            tsv.contains("1\tTwo peak SPLASH sanity check\t7\t250\tok\tsplash10-0udi-0490000000-4425acda10ed7d4709bd\t")
         );
-        assert!(tsv.contains("2\tEmpty spectrum\t8\terror\t"));
+        assert!(tsv.contains("2\tEmpty spectrum\t8\t350\terror\t"));
     }
 
     #[test]
@@ -605,7 +635,8 @@ END IONS
                 SplashRecord::new(
                     index,
                     format!("Spectrum {index}"),
-                    Some(index),
+                    Some(format!("{index}")),
+                    format!("{}.5", 100_usize + index),
                     SplashStatus::Generated(format!("splash10-test-{index:010}")),
                 )
             })
@@ -614,6 +645,6 @@ END IONS
         let tsv = report.to_tsv();
 
         assert_eq!(tsv.lines().count(), 56);
-        assert!(tsv.contains("55\tSpectrum 55\t55\tok\tsplash10-test-0000000055\t"));
+        assert!(tsv.contains("55\tSpectrum 55\t55\t155.5\tok\tsplash10-test-0000000055\t"));
     }
 }
