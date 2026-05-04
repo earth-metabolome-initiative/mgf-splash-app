@@ -182,6 +182,24 @@ button {
     background: #184f78;
 }
 
+.button-download-tsv {
+    background: var(--blue);
+    border-color: rgba(32, 94, 140, 0.24);
+}
+
+.button-download-tsv:hover:not(:disabled) {
+    background: #184f78;
+}
+
+.button-download-mgf {
+    background: var(--green);
+    border-color: rgba(56, 117, 90, 0.24);
+}
+
+.button-download-mgf:hover:not(:disabled) {
+    background: #2b6048;
+}
+
 .button:disabled {
     cursor: not-allowed;
     opacity: 0.45;

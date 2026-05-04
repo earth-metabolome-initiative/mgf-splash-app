@@ -299,7 +299,7 @@ fn App() -> Element {
                         }
                         div { class: "download-actions",
                             button {
-                                class: "button button-primary",
+                                class: "button button-primary button-download-tsv",
                                 aria_label: "Download TSV results",
                                 title: "Download TSV results",
                                 disabled: !can_download,
@@ -313,7 +313,7 @@ fn App() -> Element {
                                 "TSV"
                             }
                             button {
-                                class: "button button-primary",
+                                class: "button button-primary button-download-mgf",
                                 aria_label: "Download MGF with SPLASH metadata",
                                 title: "Download MGF with SPLASH metadata",
                                 disabled: !can_download,
