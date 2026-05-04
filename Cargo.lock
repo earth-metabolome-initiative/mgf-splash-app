@@ -1230,7 +1230,7 @@ dependencies = [
 [[package]]
 name = "geometric-traits"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/geometric-traits?branch=main#6f1bc412e34c3e698877bab976124041f8043b75"
+source = "git+https://github.com/earth-metabolome-initiative/geometric-traits?branch=main#c0b1a8e9c9add3398b83ada2f2bb7ff6d7d2f0c5"
 dependencies = [
  "bitvec",
  "hashbrown 0.16.1",
@@ -1244,7 +1244,7 @@ dependencies = [
 [[package]]
 name = "geometric-traits"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#6f1bc412e34c3e698877bab976124041f8043b75"
+source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#c0b1a8e9c9add3398b83ada2f2bb7ff6d7d2f0c5"
 dependencies = [
  "bitvec",
  "hashbrown 0.16.1",
@@ -1918,7 +1918,7 @@ dependencies = [
 [[package]]
 name = "mascot-rs"
 version = "0.1.0"
-source = "git+https://github.com/LucaCappelletti94/mascot-rs?rev=bb0f6cddb7925f1ca272f397759d3ebb17de623b#bb0f6cddb7925f1ca272f397759d3ebb17de623b"
+source = "git+https://github.com/LucaCappelletti94/mascot-rs?rev=cd26e059eb7beeac62ea191c30c642766a96e941#cd26e059eb7beeac62ea191c30c642766a96e941"
 dependencies = [
  "mass_spectrometry",
  "molecular-formulas",
@@ -1929,7 +1929,7 @@ dependencies = [
 [[package]]
 name = "mass_spectrometry"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/mass-spectrometry-traits?rev=5010a2a1c4dbf8d1898b8319b2108ea810be1767#5010a2a1c4dbf8d1898b8319b2108ea810be1767"
+source = "git+https://github.com/earth-metabolome-initiative/mass-spectrometry-traits?rev=ab3048ca8520773369579434c515fe9ae7389999#ab3048ca8520773369579434c515fe9ae7389999"
 dependencies = [
  "arbitrary",
  "geometric-traits 0.1.0 (git+https://github.com/earth-metabolome-initiative/geometric-traits)",

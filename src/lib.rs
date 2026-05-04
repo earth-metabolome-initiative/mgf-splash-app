@@ -443,7 +443,9 @@ fn write_mgf_record_with_splash(
         push_mgf_metadata_line(output, "FEATURE_ID", feature_id);
     }
     push_mgf_metadata_line(output, "PEPMASS", spectrum.precursor_mz());
-    push_mgf_metadata_line(output, "CHARGE", spectrum.charge());
+    if let Some(charge) = spectrum.charge() {
+        push_mgf_metadata_line(output, "CHARGE", charge);
+    }
     if let Some(retention_time) = metadata.retention_time() {
         push_mgf_metadata_line(output, "RTINSECONDS", retention_time);
     }
