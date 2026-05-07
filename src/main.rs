@@ -186,6 +186,16 @@ fn App() -> Element {
                 nav { class: "hero-links", aria_label: "Project links",
                     a {
                         class: "hero-link",
+                        href: "https://github.com/earth-metabolome-initiative/mgf-splash-app",
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        aria_label: "Open MGF SPLASH App source code on GitHub",
+                        title: "Open MGF SPLASH App source code on GitHub",
+                        {app_icon(FaGithub, "GitHub repository")}
+                        "Source code"
+                    }
+                    a {
+                        class: "hero-link",
                         href: "https://github.com/LucaCappelletti94/mascot-rs",
                         target: "_blank",
                         rel: "noopener noreferrer",
