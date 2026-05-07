@@ -15,6 +15,33 @@ cargo clippy --all-targets -- -D warnings
 dx serve --web --release
 ```
 
+## Dataset Experiment
+
+The native example in `examples/dataset_duplicate_splash.rs` counts duplicated `(PEPMASS, SPLASH)` entries in downloadable MGF datasets exposed by `mascot-rs`.
+
+```bash
+cargo run --release --example dataset_duplicate_splash --locked
+```
+
+It retrieves `MassSpecGym` from Hugging Face and `GNPS` from the public GNPS MGF library endpoint. The output is TSV with one row per dataset:
+
+- `spectra`: loaded MGF records
+- `hashed_spectra`: records that yielded a SPLASH
+- `unique_pepmass_splash`: distinct `(PEPMASS, SPLASH)` pairs
+- `duplicate_entries`: distinct `(PEPMASS, SPLASH)` pairs appearing more than once
+- `duplicate_spectra`: repeated spectra beyond the first occurrence of each pair
+- `splashes_with_multiple_pepmass`: distinct SPLASH values observed with more than one distinct `PEPMASS`
+- `splash_failures`: records loaded by `mascot-rs` but not hashable as SPLASH
+
+Latest local run:
+
+| dataset | spectra | hashed spectra | unique `(PEPMASS, SPLASH)` | duplicate entries | duplicate spectra | SPLASH with multiple `PEPMASS` | SPLASH failures |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| MassSpecGym | 231,104 | 231,104 | 205,364 | 24,882 | 25,740 | 447 | 0 |
+| GNPS | 1,917,668 | 1,917,668 | 1,243,098 | 157,137 | 674,570 | 6,688 | 0 |
+
+The datasets are cached in the default locations chosen by `mascot-rs`.
+
 ## GitHub Pages Build
 
 ```bash
