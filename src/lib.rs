@@ -1,6 +1,7 @@
 //! Core MGF parsing and SPLASH reporting types for the web app and worker.
 
 use std::{
+    collections::BTreeMap,
     error::Error,
     fmt::{Display, Formatter, Result as FmtResult, Write as _},
 };
@@ -186,6 +187,34 @@ impl SplashReport {
             .iter()
             .filter(|record| record.status().is_failed())
             .count()
+    }
+
+    /// Returns the number of distinct generated SPLASH codes shared by multiple spectra.
+    #[must_use]
+    pub fn duplicate_splash_count(&self) -> usize {
+        self.duplicate_splash_codes().count()
+    }
+
+    /// Returns distinct generated SPLASH codes shared by multiple spectra.
+    pub fn duplicate_splash_codes(&self) -> impl Iterator<Item = &str> {
+        self.generated_splash_counts()
+            .into_iter()
+            .filter_map(|(code, count)| (count > 1).then_some(code))
+    }
+
+    fn generated_splash_counts(&self) -> BTreeMap<&str, usize> {
+        let mut counts = BTreeMap::<&str, usize>::new();
+        for code in self
+            .records
+            .iter()
+            .filter_map(|record| record.status().code())
+        {
+            counts
+                .entry(code)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        }
+        counts
     }
 
     /// Returns true when the report contains no spectra.
@@ -659,6 +688,7 @@ END IONS
         assert_eq!(report.total_count(), 5);
         assert_eq!(report.success_count(), 5);
         assert_eq!(report.failure_count(), 0);
+        assert_eq!(report.duplicate_splash_count(), 0);
 
         let titles: Vec<&str> = report.records().iter().map(SplashRecord::title).collect();
         assert_eq!(
@@ -694,6 +724,67 @@ END IONS
             }
         }
         Ok(())
+    }
+
+    #[test]
+    fn duplicate_splash_count_tracks_distinct_repeated_codes() {
+        let report = SplashReport::new(vec![
+            SplashRecord::new(
+                1,
+                String::from("First aspirin replicate"),
+                None,
+                String::from("181.049"),
+                SplashStatus::Generated(String::from("splash10-a")),
+            ),
+            SplashRecord::new(
+                2,
+                String::from("Second aspirin replicate"),
+                None,
+                String::from("181.049"),
+                SplashStatus::Generated(String::from("splash10-a")),
+            ),
+            SplashRecord::new(
+                3,
+                String::from("First cocaine replicate"),
+                None,
+                String::from("304.15314"),
+                SplashStatus::Generated(String::from("splash10-b")),
+            ),
+            SplashRecord::new(
+                4,
+                String::from("Second cocaine replicate"),
+                None,
+                String::from("304.15314"),
+                SplashStatus::Generated(String::from("splash10-b")),
+            ),
+            SplashRecord::new(
+                5,
+                String::from("Third cocaine replicate"),
+                None,
+                String::from("304.15314"),
+                SplashStatus::Generated(String::from("splash10-b")),
+            ),
+            SplashRecord::new(
+                6,
+                String::from("Unique glucose spectrum"),
+                None,
+                String::from("203.05"),
+                SplashStatus::Generated(String::from("splash10-c")),
+            ),
+            SplashRecord::new(
+                7,
+                String::from("Failed spectrum"),
+                None,
+                String::from("166.086"),
+                SplashStatus::Failed(String::from("all intensities are zero")),
+            ),
+        ]);
+
+        assert_eq!(report.duplicate_splash_count(), 2);
+        assert_eq!(
+            report.duplicate_splash_codes().collect::<Vec<_>>(),
+            ["splash10-a", "splash10-b"]
+        );
     }
 
     #[test]

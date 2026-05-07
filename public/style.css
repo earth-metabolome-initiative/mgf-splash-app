@@ -356,6 +356,18 @@ button {
     border-color: rgba(56, 117, 90, 0.16);
 }
 
+.success-pill .app-icon,
+.duplicate-pill .app-icon,
+.error-pill .app-icon {
+    color: currentColor;
+}
+
+.duplicate-pill {
+    color: #6b4a00;
+    background: rgba(214, 143, 0, 0.1);
+    border-color: rgba(214, 143, 0, 0.24);
+}
+
 .error-pill {
     color: var(--red);
     background: rgba(157, 65, 51, 0.08);
@@ -491,6 +503,14 @@ button {
     width: 5.8rem;
 }
 
+.duplicate-splash-row td {
+    background: var(--duplicate-bg);
+}
+
+.duplicate-splash-row td:first-child {
+    box-shadow: inset 0.28rem 0 0 var(--duplicate-border);
+}
+
 .mono-cell,
 .splash-code {
     font-family: "IBM Plex Mono", monospace;
@@ -505,6 +525,25 @@ button {
 .splash-code {
     overflow-wrap: anywhere;
     color: #16323f;
+}
+
+.splash-code-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.duplicate-splash-label {
+    color: white;
+    background: var(--duplicate-border);
+    border-radius: 999px;
+    padding: 0.16rem 0.45rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 @media (width <= 920px) {
@@ -579,6 +618,17 @@ button {
 
     .result-table tr {
         padding: 0.65rem 0.85rem;
+    }
+
+    .duplicate-splash-row {
+        background: var(--duplicate-bg);
+        box-shadow: inset 0.28rem 0 0 var(--duplicate-border);
+    }
+
+    .duplicate-splash-row td,
+    .duplicate-splash-row td:first-child {
+        background: transparent;
+        box-shadow: none;
     }
 
     .result-table td {

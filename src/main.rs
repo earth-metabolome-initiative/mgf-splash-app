@@ -2,6 +2,7 @@
 
 use std::{
     cell::{Cell, RefCell},
+    collections::BTreeMap,
     rc::Rc,
 };
 
@@ -16,7 +17,7 @@ use dioxus_free_icons::icons::{
 };
 use dioxus_free_icons::{Icon, IconShape};
 
-use mgf_splash_app::{MgfWorkerRequest, SAMPLE_MGF, SplashReport, SplashStatus};
+use mgf_splash_app::{MgfWorkerRequest, SAMPLE_MGF, SplashRecord, SplashReport, SplashStatus};
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Array;
@@ -37,6 +38,9 @@ const WORKER_SCRIPT: &str = "generated/mgf-splash-worker.js";
 #[cfg(target_arch = "wasm32")]
 const LOADING_DELAY_MS: i32 = 700;
 const TABLE_PREVIEW_LIMIT: usize = 50;
+const DUPLICATE_HUE_OFFSET: usize = 43;
+const DUPLICATE_HUE_STEP: usize = 137;
+const DUPLICATE_HUE_RANGE: usize = 360;
 
 fn main() {
     dioxus::launch(App);
@@ -387,24 +391,34 @@ fn result_summary(state: &ReportState) -> Element {
         ReportState::Loading { label } => rsx! {
             p { class: "panel-copy", "{label}" }
         },
-        ReportState::Ready(report) => rsx! {
-            div { class: "summary-pills",
-                span { class: "meta-pill",
-                    {app_icon(LdHash, "Spectra")}
-                    "{report.total_count()} spectra"
-                }
-                span { class: "meta-pill success-pill",
-                    {app_icon(LdCircleCheck, "Generated")}
-                    "{report.success_count()} generated"
-                }
-                if report.failure_count() > 0 {
-                    span { class: "meta-pill error-pill",
-                        {app_icon(LdCircleAlert, "Failed")}
-                        "{report.failure_count()} failed"
+        ReportState::Ready(report) => {
+            let duplicate_summary = duplicate_summary_text(report.duplicate_splash_count());
+            rsx! {
+                div { class: "summary-pills",
+                    span { class: "meta-pill",
+                        {app_icon(LdHash, "Spectra")}
+                        "{report.total_count()} spectra"
+                    }
+                    span { class: "meta-pill success-pill",
+                        {app_icon(LdCircleCheck, "Generated")}
+                        "{report.success_count()} generated"
+                    }
+                    span {
+                        class: "meta-pill duplicate-pill",
+                        aria_label: "Distinct duplicated SPLASH values",
+                        title: "Distinct generated SPLASH values that appear in more than one spectrum",
+                        {app_icon(LdHash, "Duplicated SPLASH")}
+                        "{duplicate_summary}"
+                    }
+                    if report.failure_count() > 0 {
+                        span { class: "meta-pill error-pill",
+                            {app_icon(LdCircleAlert, "Failed")}
+                            "{report.failure_count()} failed"
+                        }
                     }
                 }
             }
-        },
+        }
         ReportState::Fatal(_) => rsx! {
             p { class: "panel-copy error-copy", "Parsing failed." }
         },
@@ -432,46 +446,37 @@ fn result_body(state: &ReportState) -> Element {
                 p { class: "empty-title", "Waiting for MGF spectra" }
             }
         },
-        ReportState::Ready(report) => rsx! {
-            if report.total_count() > TABLE_PREVIEW_LIMIT {
-                p { class: "status-note preview-note",
-                    "Showing the first {TABLE_PREVIEW_LIMIT} spectra. Download TSV for all {report.total_count()} results."
-                }
-            }
-            div { class: "table-wrap",
-                table { class: "result-table",
-                    thead {
-                        tr {
-                            th { "#" }
-                            th { "Spectrum" }
-                            th { "Feature" }
-                            th { "PEPMASS" }
-                            th { "SPLASH" }
-                        }
+        ReportState::Ready(report) => {
+            let duplicate_styles = duplicate_splash_styles(report);
+            rsx! {
+                if report.total_count() > TABLE_PREVIEW_LIMIT {
+                    p { class: "status-note preview-note",
+                        "Showing the first {TABLE_PREVIEW_LIMIT} spectra. Download TSV for all {report.total_count()} results."
                     }
-                    tbody {
-                        for record in report.records().iter().take(TABLE_PREVIEW_LIMIT) {
-                            tr { key: "{record.index()}",
-                                td { class: "mono-cell", "{record.index()}" }
-                                td { class: "title-cell", "{record.title()}" }
-                                td { class: "mono-cell", "{format_optional_str(record.feature_id())}" }
-                                td { class: "mono-cell", "{record.pepmass()}" }
-                                td {
-                                    match record.status() {
-                                        SplashStatus::Generated(code) => rsx! {
-                                            code { class: "splash-code", "{code}" }
-                                        },
-                                        SplashStatus::Failed(message) => rsx! {
-                                            span { class: "error-text", "{message}" }
-                                        },
-                                    }
-                                }
+                }
+                div { class: "table-wrap",
+                    table { class: "result-table",
+                        thead {
+                            tr {
+                                th { "#" }
+                                th { "Spectrum" }
+                                th { "Feature" }
+                                th { "PEPMASS" }
+                                th { "SPLASH" }
+                            }
+                        }
+                        tbody {
+                            for record in report.records().iter().take(TABLE_PREVIEW_LIMIT) {
+                                {result_record_row(
+                                    record,
+                                    duplicate_splash_style(record, &duplicate_styles),
+                                )}
                             }
                         }
                     }
                 }
             }
-        },
+        }
         ReportState::Fatal(error) => rsx! {
             div { class: "empty-state error-state",
                 div { class: "state-icon error-icon", {app_icon(LdCircleAlert, "Parse error")} }
@@ -479,6 +484,85 @@ fn result_body(state: &ReportState) -> Element {
                 p { class: "error-detail", "{error}" }
             }
         },
+    }
+}
+
+fn result_record_row(record: &SplashRecord, duplicate_style: Option<&str>) -> Element {
+    let is_duplicate = duplicate_style.is_some();
+    let row_class = if is_duplicate {
+        "duplicate-splash-row"
+    } else {
+        ""
+    };
+    let row_style = duplicate_style.unwrap_or_default();
+    let row_title = if is_duplicate {
+        "This SPLASH is shared by more than one spectrum."
+    } else {
+        ""
+    };
+
+    rsx! {
+        tr {
+            key: "{record.index()}",
+            class: "{row_class}",
+            style: "{row_style}",
+            title: "{row_title}",
+            td { class: "mono-cell", "{record.index()}" }
+            td { class: "title-cell", "{record.title()}" }
+            td { class: "mono-cell", "{format_optional_str(record.feature_id())}" }
+            td { class: "mono-cell", "{record.pepmass()}" }
+            td {
+                match record.status() {
+                    SplashStatus::Generated(code) => rsx! {
+                        div { class: "splash-code-wrap",
+                            code { class: "splash-code", "{code}" }
+                            if is_duplicate {
+                                span {
+                                    class: "duplicate-splash-label",
+                                    aria_label: "Duplicated SPLASH",
+                                    title: "This SPLASH is shared by more than one spectrum",
+                                    "duplicate"
+                                }
+                            }
+                        }
+                    },
+                    SplashStatus::Failed(message) => rsx! {
+                        span { class: "error-text", "{message}" }
+                    },
+                }
+            }
+        }
+    }
+}
+
+fn duplicate_splash_styles(report: &SplashReport) -> BTreeMap<&str, String> {
+    report
+        .duplicate_splash_codes()
+        .enumerate()
+        .map(|(index, code)| (code, duplicate_splash_row_style(index)))
+        .collect()
+}
+
+fn duplicate_splash_style<'a>(
+    record: &SplashRecord,
+    duplicate_styles: &'a BTreeMap<&str, String>,
+) -> Option<&'a str> {
+    record
+        .status()
+        .code()
+        .and_then(|code| duplicate_styles.get(code).map(String::as_str))
+}
+
+fn duplicate_splash_row_style(index: usize) -> String {
+    let hue =
+        (DUPLICATE_HUE_OFFSET + index.saturating_mul(DUPLICATE_HUE_STEP)) % DUPLICATE_HUE_RANGE;
+    format!("--duplicate-bg: hsl({hue} 82% 92%); --duplicate-border: hsl({hue} 58% 36%);")
+}
+
+fn duplicate_summary_text(count: usize) -> String {
+    match count {
+        1 => String::from("1 duplicate SPLASH"),
+        _ => format!("{count} duplicate SPLASH"),
     }
 }
 
