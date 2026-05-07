@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// Example MGF document used by the app's sample button.
 pub const SAMPLE_MGF: &str = r"BEGIN IONS
-TITLE=Two peak SPLASH sanity check
+TITLE=Two peak SPLASH consistency check
 SOURCE=mass-spectrometry-traits README
 FEATURE_ID=1
 PEPMASS=250.0
@@ -708,7 +708,7 @@ END IONS
         assert_eq!(
             titles,
             [
-                "Two peak SPLASH sanity check",
+                "Two peak SPLASH consistency check",
                 "Same fragments with changed precursor metadata",
                 "Aspirin reference spectrum",
                 "Cocaine reference spectrum",
@@ -904,7 +904,7 @@ END IONS
         let report = SplashReport::new(vec![
             SplashRecord::new(
                 1,
-                String::from("Two peak SPLASH sanity check"),
+                String::from("Two peak SPLASH consistency check"),
                 Some(String::from("7")),
                 String::from("250"),
                 SplashStatus::Generated(String::from(
@@ -922,7 +922,7 @@ END IONS
         let tsv = report.to_tsv();
 
         assert!(
-            tsv.contains("1\tTwo peak SPLASH sanity check\t7\t250\tok\tsplash10-0udi-0490000000-4425acda10ed7d4709bd\t")
+            tsv.contains("1\tTwo peak SPLASH consistency check\t7\t250\tok\tsplash10-0udi-0490000000-4425acda10ed7d4709bd\t")
         );
         assert!(tsv.contains("2\tEmpty spectrum\t8\t350\terror\t"));
     }

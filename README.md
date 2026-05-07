@@ -5,7 +5,7 @@
 
 Serverless Dioxus web app for converting Mascot Generic Format spectra into SPLASH identifiers in the browser. It parses MGF text with [`mascot-rs`](https://github.com/LucaCappelletti94/mascot-rs) and computes identifiers with [`mass_spectrometry`](https://github.com/earth-metabolome-initiative/mass-spectrometry-traits).
 
-The built-in example loads a small SPLASH sanity check, one metadata-only duplicate with a different `PEPMASS`, plus aspirin, cocaine, glucose, and phenylalanine reference spectra from `mass-spectrometry-traits`, making both SPLASH differences and duplicates visible immediately.
+The built-in example loads a small SPLASH consistency check, one metadata-only duplicate with a different `PEPMASS`, plus aspirin, cocaine, glucose, and phenylalanine reference spectra from `mass-spectrometry-traits`, making both SPLASH differences and duplicates visible immediately.
 
 ## Development
 
