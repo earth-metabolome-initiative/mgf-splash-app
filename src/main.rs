@@ -11,8 +11,8 @@ use dioxus::prelude::*;
 use dioxus_free_icons::icons::{
     fa_brands_icons::FaGithub,
     ld_icons::{
-        LdBookOpenText, LdCircleAlert, LdCircleCheck, LdDownload, LdFileText, LdFingerprint,
-        LdHash, LdSparkles, LdTable2, LdUpload,
+        LdCircleAlert, LdCircleCheck, LdDownload, LdFileText, LdFingerprint, LdHash, LdSparkles,
+        LdTable2, LdUpload,
     },
 };
 use dioxus_free_icons::{Icon, IconShape};
@@ -214,6 +214,16 @@ fn App() -> Element {
                         {app_icon(FaGithub, "GitHub repository")}
                         "SPLASH"
                     }
+                    a {
+                        class: "hero-link",
+                        href: "https://doi.org/10.1038/nbt.3689",
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        aria_label: "Open SPLASH paper DOI",
+                        title: "Open SPLASH paper DOI",
+                        {app_icon(LdFingerprint, "DOI")}
+                        "DOI"
+                    }
                 }
             }
 
@@ -366,28 +376,6 @@ fn splash_definition() -> Element {
             }
             p {
                 "This app hashes only fragment peak m/z and intensity values. Titles, feature ids, file names, scans, retention times, charges, and PEPMASS/precursor m/z are displayed as context and do not change the SPLASH."
-            }
-            nav { class: "splash-definition-links", aria_label: "SPLASH references",
-                a {
-                    class: "reference-badge",
-                    href: "https://www.nature.com/articles/nbt.3689",
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    aria_label: "Open original SPLASH paper",
-                    title: "Open original SPLASH paper",
-                    {app_icon(LdBookOpenText, "Original paper")}
-                    "Original paper"
-                }
-                a {
-                    class: "reference-badge",
-                    href: "https://doi.org/10.1038/nbt.3689",
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    aria_label: "Open SPLASH paper DOI",
-                    title: "Open SPLASH paper DOI",
-                    {app_icon(LdFingerprint, "DOI")}
-                    "DOI"
-                }
             }
         }
     }

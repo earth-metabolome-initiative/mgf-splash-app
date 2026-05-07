@@ -111,7 +111,6 @@ button {
 }
 
 .hero-link,
-.reference-badge,
 .button,
 .meta-pill {
     min-height: 2.35rem;
@@ -128,7 +127,6 @@ button {
 }
 
 .hero-link:hover,
-.reference-badge:hover,
 .button:hover:not(:disabled) {
     color: var(--blue);
     background: rgba(20, 34, 41, 0.08);
@@ -157,18 +155,6 @@ button {
     color: var(--muted);
     line-height: 1.55;
     margin: 0;
-}
-
-.splash-definition-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-}
-
-.reference-badge {
-    min-height: 2.1rem;
-    padding: 0.36rem 0.72rem;
-    font-weight: 650;
 }
 
 .button {
@@ -270,7 +256,6 @@ button {
 .title-with-icon .app-icon,
 .splash-definition-title .app-icon,
 .hero-link .app-icon,
-.reference-badge .app-icon,
 .button .app-icon,
 .meta-pill .app-icon {
     color: var(--blue);
