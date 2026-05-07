@@ -27,6 +27,20 @@ SCANS=1
 END IONS
 
 BEGIN IONS
+TITLE=Same fragments with changed precursor metadata
+SOURCE=MGF SPLASH duplicate demonstration
+FEATURE_ID=6
+PEPMASS=875.4321
+CHARGE=2
+RTINSECONDS=123.45
+MSLEVEL=2
+SCANS=42
+FILENAME=metadata-changed.mgf
+100.0 10.0
+200.0 20.0
+END IONS
+
+BEGIN IONS
 TITLE=Aspirin reference spectrum
 SOURCE=mass-spectrometry-traits/src/traits/reference_spectra/aspirin.rs
 FEATURE_ID=2
@@ -681,20 +695,21 @@ END IONS
     }
 
     #[test]
-    fn sample_mgf_contains_named_reference_spectra_with_distinct_codes()
-    -> Result<(), MgfSplashError> {
+    fn sample_mgf_contains_reference_spectra_and_metadata_collision() -> Result<(), MgfSplashError>
+    {
         let report = splash_report_from_mgf(SAMPLE_MGF)?;
 
-        assert_eq!(report.total_count(), 5);
-        assert_eq!(report.success_count(), 5);
+        assert_eq!(report.total_count(), 6);
+        assert_eq!(report.success_count(), 6);
         assert_eq!(report.failure_count(), 0);
-        assert_eq!(report.duplicate_splash_count(), 0);
+        assert_eq!(report.duplicate_splash_count(), 1);
 
         let titles: Vec<&str> = report.records().iter().map(SplashRecord::title).collect();
         assert_eq!(
             titles,
             [
                 "Two peak SPLASH sanity check",
+                "Same fragments with changed precursor metadata",
                 "Aspirin reference spectrum",
                 "Cocaine reference spectrum",
                 "Glucose reference spectrum",
@@ -717,9 +732,45 @@ END IONS
             codes.first().copied(),
             Some("splash10-0udi-0490000000-4425acda10ed7d4709bd")
         );
+        assert_eq!(
+            report.duplicate_splash_codes().collect::<Vec<_>>(),
+            ["splash10-0udi-0490000000-4425acda10ed7d4709bd"]
+        );
 
-        for (left_index, left_code) in codes.iter().enumerate() {
-            for right_code in codes.iter().skip(left_index + 1) {
+        let [first_record, duplicate_record, ..] = report.records() else {
+            return Err(MgfSplashError::new(
+                "expected sample records to include duplicate demonstration",
+            ));
+        };
+        assert_ne!(first_record.title(), duplicate_record.title());
+        assert_ne!(first_record.feature_id(), duplicate_record.feature_id());
+        assert_ne!(first_record.pepmass(), duplicate_record.pepmass());
+
+        let [
+            first_code,
+            metadata_variant_code,
+            aspirin_code,
+            cocaine_code,
+            glucose_code,
+            phenylalanine_code,
+        ] = codes.as_slice()
+        else {
+            return Err(MgfSplashError::new(
+                "expected exactly six sample SPLASH codes",
+            ));
+        };
+        let first_code = *first_code;
+        assert_eq!(first_code, *metadata_variant_code);
+
+        let reference_codes = [
+            *aspirin_code,
+            *cocaine_code,
+            *glucose_code,
+            *phenylalanine_code,
+        ];
+        for (left_index, left_code) in reference_codes.iter().enumerate() {
+            assert_ne!(first_code, *left_code);
+            for right_code in reference_codes.iter().skip(left_index + 1) {
                 assert_ne!(left_code, right_code);
             }
         }

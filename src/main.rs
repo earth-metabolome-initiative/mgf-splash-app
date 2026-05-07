@@ -264,7 +264,7 @@ fn App() -> Element {
                                     onclick: move |_| {
                                         input.set(String::from(SAMPLE_MGF));
                                         file_status.set(String::from(
-                                            "Loaded five reference spectra.",
+                                            "Loaded six example spectra, including one deliberate SPLASH duplicate.",
                                         ));
                                         download_status.set(String::new());
                                     },
