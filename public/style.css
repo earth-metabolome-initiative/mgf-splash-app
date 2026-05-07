@@ -105,6 +105,11 @@ button {
     flex-shrink: 0;
 }
 
+.download-actions {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+}
+
 .hero-link,
 .reference-badge,
 .button,
