@@ -85,22 +85,22 @@ web = [
 ]
 
 [dependencies]
-dioxus = { version = "=0.7.7", optional = true }
+dioxus = { version = "=0.7.9", optional = true }
 dioxus-free-icons = { version = "0.10.0", features = ["font-awesome-brands", "lucide"], optional = true }
-js-sys = { version = "0.3.97", optional = true }
-mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "6f11bdb4f57b592e5eae29675ce21735537eb236", default-features = false }
-mass_spectrometry = { git = "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits", rev = "a4e181ca8925cf8c50fcd1a1a0f1698a3fb1d086", default-features = false }
+js-sys = { version = "0.3.98", optional = true }
+mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "8e5e39e15aecf02d96dd9ee3602ccb8cdcd55ab2", default-features = false }
+mass_spectrometry = { git = "https://github.com/earth-metabolome-initiative/mass-spectrometry-traits", rev = "064985366c24902dae986f66e4bbc3a796555ac5", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
-wasm-bindgen = { version = "0.2.120", optional = true }
-web-sys = { version = "0.3.97", optional = true }
+wasm-bindgen = { version = "0.2.121", optional = true }
+web-sys = { version = "0.3.98", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "6f11bdb4f57b592e5eae29675ce21735537eb236", default-features = false, features = ["std"] }
-tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "time"] }
+mascot-rs = { git = "https://github.com/LucaCappelletti94/mascot-rs", rev = "8e5e39e15aecf02d96dd9ee3602ccb8cdcd55ab2", default-features = false, features = ["std"] }
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "time"] }
 
 [build-dependencies]
-wasm-bindgen-cli-support = "0.2.120"
+wasm-bindgen-cli-support = "0.2.121"
 
 [profile.wasm-dev]
 inherits = "dev"

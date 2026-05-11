@@ -492,7 +492,9 @@ fn write_mgf_record_with_splash(
     if let Some(retention_time) = metadata.retention_time() {
         push_mgf_metadata_line(output, "RTINSECONDS", retention_time);
     }
-    push_mgf_metadata_line(output, "MSLEVEL", spectrum.level());
+    if let Some(level) = spectrum.level() {
+        push_mgf_metadata_line(output, "MSLEVEL", level);
+    }
     if let Some(filename) = metadata.filename() {
         push_mgf_metadata_line(output, "FILENAME", filename);
     }

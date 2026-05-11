@@ -24,7 +24,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Install Dioxus CLI
-        run: cargo install dioxus-cli --version 0.7.7 --locked
+        run: cargo install dioxus-cli --version 0.7.9 --locked
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Format

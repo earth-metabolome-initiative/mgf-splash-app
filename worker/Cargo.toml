@@ -9,13 +9,13 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-gloo-timers = { version = "0.3.0", features = ["futures"] }
-js-sys = "0.3.97"
+gloo-timers = { version = "0.4.0", features = ["futures"] }
+js-sys = "0.3.98"
 mgf-splash-app = { path = "..", default-features = false }
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = "0.2.120"
-wasm-bindgen-futures = "0.4.70"
-web-sys = { version = "0.3.97", features = ["DedicatedWorkerGlobalScope", "MessageEvent"] }
+wasm-bindgen = "0.2.121"
+wasm-bindgen-futures = "0.4.71"
+web-sys = { version = "0.3.98", features = ["DedicatedWorkerGlobalScope", "MessageEvent"] }
 
 [lints]
 workspace = true
