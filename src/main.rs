@@ -506,9 +506,13 @@ fn result_record_row(record: &SplashRecord, duplicate_style: Option<&str>) -> El
             style: "{row_style}",
             title: "{row_title}",
             td { class: "mono-cell", "{record.index()}" }
-            td { class: "title-cell", "{record.title()}" }
-            td { class: "mono-cell", "{format_optional_str(record.feature_id())}" }
-            td { class: "mono-cell", "{record.pepmass()}" }
+            td { class: "title-cell", title: "{record.title()}", "{record.title()}" }
+            td {
+                class: "mono-cell",
+                title: "{format_optional_str(record.feature_id())}",
+                "{format_optional_str(record.feature_id())}"
+            }
+            td { class: "mono-cell", title: "{record.pepmass()}", "{record.pepmass()}" }
             td {
                 match record.status() {
                     SplashStatus::Generated(code) => rsx! {

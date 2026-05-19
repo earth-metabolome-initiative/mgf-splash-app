@@ -507,6 +507,13 @@ button {
     font-size: 0.82rem;
 }
 
+.result-table td.mono-cell,
+.result-table td.title-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .title-cell {
     font-weight: 650;
     min-width: 11rem;
@@ -627,6 +634,14 @@ button {
         grid-template-columns: 6.5rem minmax(0, 1fr);
         gap: 0.65rem;
         padding: 0.35rem 0;
+    }
+
+    .result-table td.mono-cell,
+    .result-table td.title-cell {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .result-table th:nth-child(n),
