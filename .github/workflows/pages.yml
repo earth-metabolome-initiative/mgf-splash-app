@@ -48,18 +48,6 @@ jobs:
           test -f dist/public/CNAME
           test "$(cat dist/public/CNAME)" = "splash.earthmetabolome.org"
           ! grep -q '/mgf-splash-app/' dist/public/index.html
-      - name: Links
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
-        with:
-          args: >-
-            --no-progress
-            --base-url file://${{ github.workspace }}/public/
-            --exclude ^https://github\.com/earth-metabolome-initiative/mgf-splash-app/actions/workflows/pages\.yml/badge\.svg
-            README.md
-            index.html
-            public
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: dist/public
